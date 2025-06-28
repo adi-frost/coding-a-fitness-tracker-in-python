@@ -157,3 +157,75 @@ def read_data_from_files(files):
 acc_df, gyr_df = read_data_from_files(files)
 
 
+# -----------------------------------------------------------------------
+# Merging Datasets
+# -----------------------------------------------------------------------
+
+data_merged = pd.concat([acc_df.iloc[:,:3], gyr_df], axis=1)
+
+
+# Rename columns
+data_merged.columns = [
+        "acc_x",
+        "acc_y",
+        "acc_z",
+        "gyr_x",
+        "gyr_y",
+        "gyr_z",
+        "participant",
+        "label",
+        "category",
+        "set"
+    ]
+
+
+# -----------------------------------------------------------------------
+# Resample Data (Frequency Conversion)
+# -----------------------------------------------------------------------
+
+# Accelerometer: 12.5 Hz
+# Gyroscope: 25 Hz
+
+# data_merged[:100].resample(rule="S").mean(numeric_only=True)
+# data_merged[:100].resample(rule="200ms").mean(numeric_only=True)
+
+sampling = {
+        "acc_x": "mean", 
+        "acc_y": "mean", 
+        "acc_z": "mean", 
+        "gyr_x": "mean", 
+        "gyr_y": "mean", 
+        "gyr_z": "mean",
+        "participant": "last",
+        "category": "last", 
+        "label": "last", 
+        "set": "last"
+    }
+
+# data_merged[:1000].resample(rule="200ms").apply(sampling)
+
+# Split by day
+days = [g for n, g in data_merged.groupby(pd.Grouper(freq="D"))]
+
+data_resampled = pd.concat([df.resample(rule="200ms")\
+                            .apply(sampling).dropna() \
+                                for df in days])
+
+data_resampled.info()
+
+data_resampled["set"] = data_resampled["set"].astype("int")
+
+
+# -----------------------------------------------------------------------
+# Export Dataset
+# -----------------------------------------------------------------------
+
+data_resampled.to_pickle("../../data/interim/01_processed.pkl")
+
+
+
+
+
+
+
+
